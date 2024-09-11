@@ -1,0 +1,63 @@
+---
+- name: Generate ED25519 SSH key
+  ansible.builtin.openssh_keypair:
+    path: ~/.ssh/id_ed25519  # Path to save the private key
+    type: ed25519
+    state: present
+  register: ssh_key
+
+- name: Set permissions on the private key
+  ansible.builtin.file:
+    path: "{{ ssh_key.path }}"
+    mode: '0600'
+  when: ssh_key is defined and ssh_key.path is defined
+
+- name: Set permissions on the public key
+  ansible.builtin.file:
+    path: "{{ ssh_key.path }}.pub"
+    mode: '0644'
+  when: ssh_key is defined and ssh_key.path is defined
+
+- name: Add entries to /etc/hosts
+  ansible.builtin.lineinfile:
+    path: /etc/hosts
+    line: "{{ item }}"
+    state: present
+  loop:
+    - "45.159.231.10      master4.support-dev"
+    - "195.179.228.297    master5.support-dev"
+
+- name: Set hostname in /etc/hostname
+  ansible.builtin.copy:
+    content: "ingress1.support-dev\n"
+    dest: /etc/hostname
+
+- name: Append PS1 to .bashrc
+  ansible.builtin.lineinfile:
+    path: ~/.bashrc
+    line: "PS1='\\u@\\H:\\w\\$ '"
+    state: present
+
+- name: Source .bashrc file
+  shell: |
+    source ~/.bashrc
+  args:
+    executable: /bin/bash
+
+- name: Test SSH connection to master4
+  shell: ssh -o StrictHostKeyChecking=no root@master4.support-dev echo "SSH connection successful"
+  register: ssh_result_master4
+  ignore_errors: yes
+
+- name: Test SSH connection to master5
+  shell: ssh -o StrictHostKeyChecking=no root@master5.support-dev echo "SSH connection successful"
+  register: ssh_result_master5
+  ignore_errors: yes
+
+- name: Show SSH test results for master4
+  debug:
+    msg: "Master 4: {{ ssh_result_master4.stdout if ssh_result_master4.rc == 0 else 'Failed to connect' }}"
+
+- name: Show SSH test results for master5
+  debug:
+    msg: "Master 5: {{ ssh_result_master5.stdout if ssh_result_master5.rc == 0 else 'Failed to connect' }}"
