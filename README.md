@@ -1,4 +1,6 @@
-``` RUN with this command :   ansible-playbook tests/test.yml  ```
+ create role with ansible-galaxy :  ```  ansible-galaxy init role_name ```
+
+ RUN with this command :  ``` ansible-playbook tests/test.yml  ```
 
 
 Role Name
